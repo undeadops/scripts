@@ -14,9 +14,17 @@ def check_status():
     if status['control']['state'] == 'optimal':
         print "OK: Piston Cluster Optimal"
         sys.exit(0)
-    else:
-        print "Warning: Piston Cluster Error State"
+    elif status['control']['state'] == 'degraded':
+        error_servers = ''
+        for server, stats in status['hosts'].iteritems():
+            if stats['status'] != 'ready':
+                msg = "Server ipmi: %s status: %s" % ( server, stats['status'] )
+                error_servers+=str(msg)
+        print "Warning: Piston Cluster in Degraded State.\r\n %s" % error_servers
         sys.exit(1)
+    else:
+        print "Critical: Piston Cluster in unknown"
+        sys.exit(2)
 
 
 
