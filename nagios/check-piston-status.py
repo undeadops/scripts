@@ -22,6 +22,9 @@ def check_status():
                 error_servers+=str(msg)
         print "Warning: Piston Cluster in Degraded State. %s" % error_servers
         sys.exit(1)
+    elif status['control']['state'] == 'no-quorum':
+        print "Critical: Piston Cluster is without quorum.  Multiple Nodes down."
+        sys.exit(2)
     else:
         print "Critical: Piston Cluster in unknown"
         sys.exit(2)
