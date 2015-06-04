@@ -3,6 +3,7 @@
 import sys, getopt, ast
 from fabric.api import run, env, settings, hide
 from fabric.tasks import execute
+from fabric.network import disconnect_all
 
 def check_status():
     with settings(
@@ -52,9 +53,12 @@ def main(argv):
         elif opt in ("-p", "--password"):
             env.password = arg
     with settings(
-        hide('warnings', 'running', 'stdout', 'stderr', 'everything')
-        ):
-        execute(check_status)
+        try:
+            hide('warnings', 'running', 'stdout', 'stderr', 'everything')
+            ):
+            execute(check_status)
+        finally:
+            disconnect_all()
 
 
 if __name__ == '__main__':

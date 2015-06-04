@@ -1,0 +1,44 @@
+#!/usr/bin/env python
+
+import sys, ast
+from fabric.api import env, sudo, settings, hide
+from fabric.network import disconnect_all
+from fabric.tasks import execute
+
+def resetNode():
+    with settings(
+            hide('warnings', 'running', 'stdout', 'stderr', 'everything')
+        ):
+        status = ast.literal_eval(sudo('piston-dev.py cluster-info -s'))
+        curstate = status['control']['state']
+        server = []
+        if curstate == 'degraded' or curstate == 'no-quorum':
+            while len(server) == 0:
+                for k, v in status['hosts'].iteritems():
+                    if v['status'] != 'ready':
+                      server.append(k)
+                      break
+        elif curstate == 'optimal':
+            print "Cluster Status Currently Optimial"
+            sys.exit(0)
+        else:
+            print "Error: Unrecoginzed current state: %s" % curstate
+            sys.exit(2)
+        for s in server:
+          print "Resetting %s" % s
+          sudo('piston-dev.py reset-node-state %s' % s)
+
+
+def main():
+    env.user = 'admin'
+    env.hosts = ['<BOOT NODE IP']
+    env.password = 'ADMIN/SUDO PASSWORD'
+    try:
+        execute(resetNode)
+    finally:
+        disconnect_all()
+
+
+
+if __name__ == '__main__':
+    main()
