@@ -18,3 +18,4 @@ Juniper
 Nagios
 ====
 - check-piston-status.py: Quick Nagios check for Piston Cloud Cluster Status
+- piston-reset-node: Leveraging work done in Nagios Script, Reset that node, password/host required.
