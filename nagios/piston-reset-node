@@ -5,6 +5,16 @@ from fabric.api import env, sudo, settings, hide
 from fabric.network import disconnect_all
 from fabric.tasks import execute
 
+valid_states = ['ready',
+                'Start phase.',
+                'shutdown',
+                'cooldown',
+                'start',
+                'booting',
+                'provisioning-full',
+                'want-config']
+
+
 def resetNode():
     with settings(
             hide('warnings', 'running', 'stdout', 'stderr', 'everything')
@@ -15,7 +25,7 @@ def resetNode():
         if curstate == 'degraded' or curstate == 'no-quorum':
             while len(server) == 0:
                 for k, v in status['hosts'].iteritems():
-                    if v['status'] != 'ready':
+                    if v['status'] not in valid_states:
                       server.append(k)
                       break
         elif curstate == 'optimal':
@@ -31,8 +41,8 @@ def resetNode():
 
 def main():
     env.user = 'admin'
-    env.hosts = ['<BOOT NODE IP']
-    env.password = 'ADMIN/SUDO PASSWORD'
+    env.hosts = ['<HOSTNAME>']
+    env.password = '<PASSWORD>'
     try:
         execute(resetNode)
     finally:
