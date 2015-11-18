@@ -19,3 +19,4 @@ Nagios
 ====
 - check-piston-status.py: Quick Nagios check for Piston Cloud Cluster Status
 - piston-reset-node: Leveraging work done in Nagios Script, Reset that node, password/host required.
+- check-security-groups.py	Watch for, and alert on changes to AWS security groups.
