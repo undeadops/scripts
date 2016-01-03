@@ -1,0 +1,90 @@
+---
+  - name: Create CoreOS Cluster on aws
+    hosts: localhost
+    gather_facts: False
+    vars:
+      name: coreos-test-public # Yes 4 boxes named this. Why? because cattle!
+      security_group: docker-sg01 # Name of Security Group to Add Instances to
+      role: docker-coreos-cluster1 # Role Tag assigned to each instance
+      key_name: default  # SSH Key name from AWS
+      instance_type: t2.medium  # Instance Type
+      region: us-east-1  # AWS Region
+      image: ami-cbfdb2a1  # Stable CoreOS Image ID from time of writing
+      iam_role: linux # Role from IAM Roles
+      subnet_id: subnet-12345ef # Subnet ID from VPC
+      count: 4  # Number of CoreOS instances
+      ebs_optimized: false # Because t2.medium cannot be EBS optimized
+    tasks:
+      - name: Launch 4 CoreOS instances
+        ec2:
+          key_name: "{{ key_name }}"
+          group: "{{ security_group }}"
+          instance_type: "{{ instance_type }}"
+          image: "{{ image }}"
+          wait: yes
+          wait_timeout: 500
+          vpc_subnet_id: "{{ subnet_id }}"
+          region: "{{ region }}"
+          ebs_optimized: "{{ ebs_optimized }}"
+          instance_profile_name: "{{ iam_role }}"
+          tenancy: default
+          exact_count: "{{ count }}"
+          count_tag:
+            role: "{{ role }}"
+          volumes:
+            - device_name: /dev/xvda
+              volume_type: gp2
+              volume_size: 8
+              delete_on_termination: True
+            - device_name: /dev/xvdf
+              volume_type: gp2
+              volume_size: 50
+              delete_on_termination: True
+          instance_tags:
+            role: "{{ role }}"
+            Name: "{{ name }}"
+          user_data: |
+            #cloud-config
+
+            coreos:
+              etcd2:
+                # generate a new token for each unique cluster from https://discovery.etcd.io/new?size=3
+                # specify the initial size of your cluster with ?size=X
+                discovery: https://discovery.etcd.io/<cluster id>
+                # multi-region and multi-cloud deployments need to use $public_ipv4
+                advertise-client-urls: http://$private_ipv4:2379,http://$private_ipv4:4001
+                initial-advertise-peer-urls: http://$private_ipv4:2380
+                # listen on both the official ports and the legacy ports
+                # legacy ports can be omitted if your application doesn't depend on them
+                listen-client-urls: http://0.0.0.0:2379,http://0.0.0.0:4001
+                listen-peer-urls: http://$private_ipv4:2380,http://$private_ipv4:7001
+              units:
+                - name: format-ebs.service
+                  command: start
+                  content: |
+                    [Unit]
+                    Description=Formats the EBS volume attached
+                    After=dev-xvdf.device_name
+                    Requires=dev-xvdf.device
+                    [Service]
+                    Type=oneshot
+                    RemainAfterExit=yes
+                    ExecStart=/usr/sbin/wipefs -f /dev/xvdf
+                    ExecStart=/usr/sbin/mkfs.btrfs -f /dev/xvdf
+                - name: var-lib-docker.mount
+                  command: start
+                  content: |
+                    [Unit]
+                    Description=Mount EBS to /var/lib/docker
+                    Requires=format-ebs.service
+                    After=format-ebs.service
+                    Before=docker.service
+                    [Mount]
+                    What=/dev/xvdf
+                    Where=/var/lib/docker
+                    Type=btrfs
+                - name: etcd2.service
+                  command: start
+                - name: fleet.service
+                  command: start
+          assign_public_ip: yes
