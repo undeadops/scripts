@@ -16,15 +16,14 @@
           description: "CoreOS Docker Security Group"
           vpc_id: "{{ vpc_id }}"
           region: "{{ vpc_region }}"
-    rules:
-      - proto: tcp
-        from_port: 22
-        to_port: 22
-        group_name: bastion-sg01  # My VPC Bastion Host Security group
-      - proto: tcp
-        from_port: 22
-        to_port: 22
-        cidr_ip: "{{ my_ip }}"
-      - proto: all
-        group_name: "{{ security_group }}" # To allow all coreos hosts to talk
-        
+          rules:
+            - proto: tcp
+              from_port: 22
+              to_port: 22
+              group_name: bastion-sg01  # My VPC Bastion Host Security group
+            - proto: tcp
+              from_port: 22
+              to_port: 22
+              cidr_ip: "{{ my_ip }}"
+            - proto: all
+              group_name: "{{ security_group }}" # To allow all coreos hosts to talk
