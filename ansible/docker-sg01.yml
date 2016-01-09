@@ -1,0 +1,30 @@
+---
+  - name: Configure Security Groups for AWS Infrastructure
+    hosts: localhost
+    gather_facts: false
+    vars:
+      security_group: docker-sg01
+      vpc_id: vpc-1111111
+      vpc_region: us-east-1
+      my_ip: 10.1.1.1/32  # My Home Public IP
+
+    tasks:
+      - name: 'Provision Docker Security Group'
+        local_action:
+          module: ec2_group
+          name: "{{ security_group }}"
+          description: "CoreOS Docker Security Group"
+          vpc_id: "{{ vpc_id }}"
+          region: "{{ vpc_region }}"
+    rules:
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        group_name: bastion-sg01  # My VPC Bastion Host Security group
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        cidr_ip: "{{ my_ip }}"
+      - proto: all
+        group_name: "{{ security_group }}" # To allow all coreos hosts to talk
+        
